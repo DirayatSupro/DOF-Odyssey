@@ -490,15 +490,34 @@ static void DrawWallCavity(Vector3 p, Color wallColor, Vector3 cameraPos) {
 }
 
 // Mounts one of the procedurally-generated sign textures (assets.c) flat
-// against a wall cell as a camera-facing billboard. Billboards always face
-// the viewer, but since the player can only ever approach a given wall cell
-// from within the (1-cell-wide) corridor beside it, this reads the same as
-// a properly oriented flat decal in practice while being far simpler than
-// tracking which face of the symmetric wall cube is actually exposed.
-static void DrawWallSign(Camera3D camera, Vector3 p, SignId signId, Vector3 cameraPos) {
+// against a wall cell as a camera-facing billboard, positioned right on the
+// specific face that actually borders the corridor (offset toward that
+// neighbor, not left at the cell's center) - a billboard placed at the
+// center of a solid opaque cube is invisible, since the cube's own near
+// face already occludes it in the depth buffer before the ray ever reaches
+// the center.
+static bool FindExposedDirection(const Maze *m, int row, int col, float *dx, float *dz) {
+    static const int nr[4] = { -1, 1, 0, 0 };
+    static const int nc[4] = { 0, 0, -1, 1 };
+    static const float ddz[4] = { -1.0f, 1.0f, 0.0f, 0.0f };
+    static const float ddx[4] = { 0.0f, 0.0f, -1.0f, 1.0f };
+    for (int i = 0; i < 4; i++) {
+        int rr = row + nr[i], cc = col + nc[i];
+        if (rr < 0 || rr >= m->height || cc < 0 || cc >= m->width) continue;
+        CellType t = m->cells[rr][cc];
+        if (t == CELL_FLOOR || t == CELL_BLOCK) {
+            *dx = ddx[i];
+            *dz = ddz[i];
+            return true;
+        }
+    }
+    return false;
+}
+
+static void DrawWallSign(Camera3D camera, Vector3 facePos, SignId signId, Vector3 cameraPos) {
     Texture2D tex = signs[signId].texture;
     Rectangle src = { 0, 0, (float)tex.width, -(float)tex.height };
-    Vector3 pos = { p.x, WALL_HEIGHT * 0.62f, p.z };
+    Vector3 pos = { facePos.x, WALL_HEIGHT * 0.62f, facePos.z };
     Vector2 size = { 1.7f, 0.85f };
     Color tint = ApplyFog(WHITE, pos, cameraPos);
     DrawBillboardRec(camera, tex, src, pos, size, tint);
@@ -541,8 +560,14 @@ void Maze_Draw(const Maze *m, bool kioskSolved, Camera3D camera) {
 
                 DrawWallDetails(p, m->wallColor, r, c, cameraPos, isCavity);
 
-                if (!isCavity && hash % 11 == 3) {
-                    DrawWallSign(camera, p, (SignId)(hash % SIGN_COUNT), cameraPos);
+                float faceDx = 0.0f, faceDz = 0.0f;
+                if (!isCavity && hash % 11 == 3 && FindExposedDirection(m, r, c, &faceDx, &faceDz)) {
+                    Vector3 facePos = {
+                        p.x + faceDx * (CELL_SIZE / 2.0f - 0.05f),
+                        p.y,
+                        p.z + faceDz * (CELL_SIZE / 2.0f - 0.05f)
+                    };
+                    DrawWallSign(camera, facePos, (SignId)(hash % SIGN_COUNT), cameraPos);
                 }
             } else if (t == CELL_BLOCK && !kioskSolved) {
                 Vector3 p = Maze_CellToWorld(m, c, r);
