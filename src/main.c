@@ -26,7 +26,8 @@ int main(void) {
         float dt = GetFrameTime();
         Audio_UpdateMusic();
 
-        bool musicScreen = (app.screen == SCREEN_START_MENU || app.screen == SCREEN_SETTINGS || app.screen == SCREEN_LEADERBOARD || app.screen == SCREEN_GAME_SCRIPT);
+        bool musicScreen = (app.screen == SCREEN_START_MENU || app.screen == SCREEN_SETTINGS || app.screen == SCREEN_LEADERBOARD || app.screen == SCREEN_GAME_SCRIPT
+                            || (app.screen == SCREEN_PLAYING && levelState.ending));
         Audio_SetMusicPlaying(musicScreen);
 
         if (IsKeyPressed(KEY_F11)) {

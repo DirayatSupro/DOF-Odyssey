@@ -5,7 +5,7 @@
 
 GameTextures textures;
 GameAudio audio;
-RenderTexture2D signs[SIGN_COUNT];
+Texture2D signs[SIGN_COUNT];
 
 static Texture2D LoadTex(const char *rel) {
     return LoadTexture(ResolvePath(rel));
@@ -21,15 +21,46 @@ static RenderTexture2D MakeSignCanvas(void) {
     return rt;
 }
 
+// Render textures are stored bottom-up (OpenGL framebuffer convention), so
+// reading one back and handing it straight to a manual textured quad would
+// come out upside down. Flipping it once into a normal Texture2D here means
+// every other piece of code that draws a sign can just use the same plain,
+// unambiguous top-is-top texture-coordinate convention as any other loaded
+// image in this project.
+static Texture2D FinishSignCanvas(RenderTexture2D rt) {
+    EndTextureMode();
+    Image img = LoadImageFromTexture(rt.texture);
+    ImageFlipVertical(&img);
+    Texture2D tex = LoadTextureFromImage(img);
+    SetTextureFilter(tex, TEXTURE_FILTER_BILINEAR);
+    UnloadImage(img);
+    UnloadRenderTexture(rt);
+    return tex;
+}
+
+static Texture2D MakeDesignationSign(const char *code, const char *sub) {
+    const int W = 256, H = 128;
+    RenderTexture2D rt = MakeSignCanvas();
+    BeginTextureMode(rt);
+        ClearBackground((Color){ 40, 42, 48, 255 });
+        DrawRectangleLinesEx((Rectangle){ 6, 6, W - 12, H - 12 }, 2, (Color){ 150, 155, 165, 255 });
+        int dw = MeasureText(code, 46);
+        DrawText(code, W / 2 - dw / 2, H / 2 - 30, 46, (Color){ 225, 228, 235, 255 });
+        int sw2 = MeasureText(sub, 13);
+        DrawText(sub, W / 2 - sw2 / 2, H - 28, 13, (Color){ 150, 155, 165, 255 });
+    return FinishSignCanvas(rt);
+}
+
 // Small placards and technical diagrams mounted on the maze walls, drawn
 // once here rather than shipped as image files - stenciled labels, hazard
 // markings, and instrument-panel-style diagrams so the corridors read as a
 // built ship interior instead of plain colored blocks.
 static void GenerateSigns(void) {
     const int W = 256, H = 128;
+    RenderTexture2D rt;
 
-    signs[SIGN_CAUTION] = MakeSignCanvas();
-    BeginTextureMode(signs[SIGN_CAUTION]);
+    rt = MakeSignCanvas();
+    BeginTextureMode(rt);
         ClearBackground((Color){ 12, 12, 14, 255 });
         for (int i = -14; i < W; i += 20) {
             DrawRectangle(i, 0, 10, 14, (Color){ 235, 190, 40, 255 });
@@ -38,40 +69,33 @@ static void GenerateSigns(void) {
         DrawRectangleLinesEx((Rectangle){ 4, 4, W - 8, H - 8 }, 3, (Color){ 220, 70, 60, 255 });
         int cw = MeasureText("CAUTION", 34);
         DrawText("CAUTION", W / 2 - cw / 2, H / 2 - 17, 34, (Color){ 245, 235, 210, 255 });
-    EndTextureMode();
+    signs[SIGN_CAUTION] = FinishSignCanvas(rt);
 
-    signs[SIGN_AIRLOCK] = MakeSignCanvas();
-    BeginTextureMode(signs[SIGN_AIRLOCK]);
+    rt = MakeSignCanvas();
+    BeginTextureMode(rt);
         ClearBackground((Color){ 14, 22, 34, 255 });
         DrawRectangleLinesEx((Rectangle){ 4, 4, W - 8, H - 8 }, 3, (Color){ 110, 200, 235, 255 });
         DrawCircleLines(42, H / 2, 24, (Color){ 110, 200, 235, 255 });
         DrawCircleLines(42, H / 2, 16, (Color){ 110, 200, 235, 255 });
         DrawText("AIRLOCK", 84, H / 2 - 14, 28, (Color){ 225, 235, 245, 255 });
-    EndTextureMode();
+    signs[SIGN_AIRLOCK] = FinishSignCanvas(rt);
 
-    signs[SIGN_DESIGNATION] = MakeSignCanvas();
-    BeginTextureMode(signs[SIGN_DESIGNATION]);
-        ClearBackground((Color){ 40, 42, 48, 255 });
-        DrawRectangleLinesEx((Rectangle){ 6, 6, W - 12, H - 12 }, 2, (Color){ 150, 155, 165, 255 });
-        int dw = MeasureText("RK-8", 46);
-        DrawText("RK-8", W / 2 - dw / 2, H / 2 - 30, 46, (Color){ 225, 228, 235, 255 });
-        const char *sub = "MAINTENANCE ACCESS";
-        int sw2 = MeasureText(sub, 13);
-        DrawText(sub, W / 2 - sw2 / 2, H - 28, 13, (Color){ 150, 155, 165, 255 });
-    EndTextureMode();
+    signs[SIGN_DESIGNATION] = MakeDesignationSign("RK-8", "MAINTENANCE ACCESS");
+    signs[SIGN_DESIGNATION_2] = MakeDesignationSign("DK-3", "DECK ACCESS");
+    signs[SIGN_DESIGNATION_3] = MakeDesignationSign("EN-5", "ENGINEERING BAY");
 
-    signs[SIGN_NO_ENTRY] = MakeSignCanvas();
-    BeginTextureMode(signs[SIGN_NO_ENTRY]);
+    rt = MakeSignCanvas();
+    BeginTextureMode(rt);
         ClearBackground((Color){ 40, 14, 14, 255 });
         DrawCircleLines(W / 2, 46, 30, (Color){ 235, 235, 235, 255 });
         DrawCircleLines(W / 2, 46, 29, (Color){ 235, 235, 235, 255 });
         DrawLineEx((Vector2){ W / 2.0f - 21, 25.0f }, (Vector2){ W / 2.0f + 21, 67.0f }, 4.0f, (Color){ 235, 235, 235, 255 });
         int nw = MeasureText("RESTRICTED", 20);
         DrawText("RESTRICTED", W / 2 - nw / 2, 88, 20, (Color){ 235, 200, 200, 255 });
-    EndTextureMode();
+    signs[SIGN_NO_ENTRY] = FinishSignCanvas(rt);
 
-    signs[SIGN_GAUGE] = MakeSignCanvas();
-    BeginTextureMode(signs[SIGN_GAUGE]);
+    rt = MakeSignCanvas();
+    BeginTextureMode(rt);
         ClearBackground((Color){ 16, 18, 26, 255 });
         Vector2 c = { W / 2.0f, H / 2.0f };
         float r = 46.0f;
@@ -87,10 +111,10 @@ static void GenerateSigns(void) {
         Vector2 needleEnd = { c.x + cosf(needleAng) * (r - 14), c.y + sinf(needleAng) * (r - 14) };
         DrawLineEx(c, needleEnd, 3.0f, (Color){ 235, 120, 90, 255 });
         DrawCircleV(c, 5.0f, (Color){ 235, 235, 235, 255 });
-    EndTextureMode();
+    signs[SIGN_GAUGE] = FinishSignCanvas(rt);
 
-    signs[SIGN_SCHEMATIC] = MakeSignCanvas();
-    BeginTextureMode(signs[SIGN_SCHEMATIC]);
+    rt = MakeSignCanvas();
+    BeginTextureMode(rt);
         ClearBackground((Color){ 14, 20, 24, 255 });
         Color ln = (Color){ 90, 180, 170, 255 };
         DrawLine(30, 20, 30, H - 20, ln);
@@ -106,16 +130,60 @@ static void GenerateSigns(void) {
         DrawCircle(W - 80, H - 20, 4, (Color){ 110, 220, 200, 255 });
         DrawRectangle(100, 70, 26, 18, (Color){ 235, 190, 90, 255 });
         DrawRectangle(150, 40, 18, 18, (Color){ 110, 220, 200, 255 });
-    EndTextureMode();
+    signs[SIGN_SCHEMATIC] = FinishSignCanvas(rt);
 
-    signs[SIGN_VENT] = MakeSignCanvas();
-    BeginTextureMode(signs[SIGN_VENT]);
+    rt = MakeSignCanvas();
+    BeginTextureMode(rt);
         ClearBackground((Color){ 20, 22, 28, 255 });
         DrawRectangleLinesEx((Rectangle){ 10, 10, W - 20, H - 20 }, 3, (Color){ 110, 115, 128, 255 });
         for (int y = 22; y < H - 14; y += 14) {
             DrawRectangle(20, y, W - 40, 8, (Color){ 60, 64, 74, 255 });
         }
-    EndTextureMode();
+    signs[SIGN_VENT] = FinishSignCanvas(rt);
+
+    rt = MakeSignCanvas();
+    BeginTextureMode(rt);
+        ClearBackground((Color){ 10, 10, 12, 255 });
+        for (int i = -30; i < W + H; i += 26) {
+            Vector2 p1 = { (float)i, (float)H };
+            Vector2 p2 = { (float)(i + H), 0.0f };
+            Vector2 p3 = { (float)(i + H - 14), 0.0f };
+            Vector2 p4 = { (float)(i - 14), (float)H };
+            DrawTriangle(p1, p2, p3, (Color){ 235, 190, 40, 255 });
+            DrawTriangle(p1, p3, p4, (Color){ 235, 190, 40, 255 });
+        }
+    signs[SIGN_HAZARD_STRIPE] = FinishSignCanvas(rt);
+
+    rt = MakeSignCanvas();
+    BeginTextureMode(rt);
+        ClearBackground((Color){ 18, 16, 26, 255 });
+        DrawRectangleLinesEx((Rectangle){ 4, 4, W - 8, H - 8 }, 3, (Color){ 235, 200, 90, 255 });
+        Color boltColor = (Color){ 245, 210, 90, 255 };
+        Vector2 bolt[4] = {
+            { W / 2.0f + 12.0f, 20.0f }, { W / 2.0f - 12.0f, 62.0f },
+            { W / 2.0f + 4.0f, 62.0f }, { W / 2.0f - 18.0f, 108.0f }
+        };
+        DrawLineEx(bolt[0], bolt[1], 9.0f, boltColor);
+        DrawLineEx(bolt[1], bolt[2], 9.0f, boltColor);
+        DrawLineEx(bolt[2], bolt[3], 9.0f, boltColor);
+        int pw = MeasureText("POWER", 22);
+        DrawText("POWER", W - 60 - pw, H - 30, 22, (Color){ 225, 228, 235, 255 });
+    signs[SIGN_POWER] = FinishSignCanvas(rt);
+
+    rt = MakeSignCanvas();
+    BeginTextureMode(rt);
+        ClearBackground((Color){ 22, 24, 30, 255 });
+        Vector2 vc = { W / 2.0f, H / 2.0f };
+        DrawRing(vc, 30, 40, 0, 360, 24, (Color){ 150, 155, 165, 255 });
+        for (int i = 0; i < 6; i++) {
+            float ang = i * 60.0f * DEG2RAD;
+            Vector2 a = { vc.x + cosf(ang) * 40, vc.y + sinf(ang) * 40 };
+            Vector2 b = { vc.x + cosf(ang) * 54, vc.y + sinf(ang) * 54 };
+            DrawLineEx(a, b, 5.0f, (Color){ 150, 155, 165, 255 });
+        }
+        DrawCircleV(vc, 14, (Color){ 90, 96, 108, 255 });
+        DrawCircleLines((int)vc.x, (int)vc.y, 14, (Color){ 180, 185, 195, 255 });
+    signs[SIGN_VALVE] = FinishSignCanvas(rt);
 }
 
 void Assets_LoadAll(void) {
@@ -164,7 +232,7 @@ void Assets_UnloadAll(void) {
     UnloadSound(audio.explosion);
     UnloadSound(audio.alienAttack);
 
-    for (int i = 0; i < SIGN_COUNT; i++) UnloadRenderTexture(signs[i]);
+    for (int i = 0; i < SIGN_COUNT; i++) UnloadTexture(signs[i]);
 
     CloseAudioDevice();
 }

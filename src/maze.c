@@ -420,6 +420,16 @@ static Color ApplyFog(Color c, Vector3 worldPos, Vector3 cameraPos) {
     };
 }
 
+// A small ceiling-mounted light housing dropped over occasional corridor
+// cells, just for variety and a bit of scale/rhythm overhead - not every
+// wall decoration needs to be on the walls.
+static void DrawCeilingFixture(Vector3 cellCenter, Vector3 cameraPos) {
+    Vector3 housingPos = { cellCenter.x, WALL_HEIGHT - 0.22f, cellCenter.z };
+    DrawCube(housingPos, 1.1f, 0.16f, 1.1f, ApplyFog((Color){ 40, 42, 50, 255 }, housingPos, cameraPos));
+    Vector3 lightPos = { cellCenter.x, WALL_HEIGHT - 0.32f, cellCenter.z };
+    DrawCube(lightPos, 0.75f, 0.05f, 0.75f, ApplyFog((Color){ 235, 240, 250, 255 }, lightPos, cameraPos));
+}
+
 static unsigned int CellHash(int r, int c) {
     unsigned int h = (unsigned int)(r * 928371 + c * 68111 + 12345);
     h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
@@ -514,13 +524,40 @@ static bool FindExposedDirection(const Maze *m, int row, int col, float *dx, flo
     return false;
 }
 
-static void DrawWallSign(Camera3D camera, Vector3 facePos, SignId signId, Vector3 cameraPos) {
-    Texture2D tex = signs[signId].texture;
-    Rectangle src = { 0, 0, (float)tex.width, -(float)tex.height };
+// Draws a sign flush against the wall's own face, statically oriented to
+// that face (not a camera-facing billboard - that made it look like it was
+// sticking straight out of the wall as you turned to look down the
+// corridor instead of lying flat on it). faceDx/faceDz is the outward unit
+// normal of the face this is mounted on.
+static void DrawWallSign(Vector3 facePos, float faceDx, float faceDz, SignId signId, Vector3 cameraPos) {
+    Texture2D tex = signs[signId];
+    const float halfW = 0.85f, halfH = 0.425f;
+
+    // 'right' (the viewer's right when facing the wall along -normal) is
+    // the outward normal rotated -90 degrees in the XZ plane: facing west
+    // (normal +X), north (-Z) is on your right - a fixed, direction-
+    // independent rotation, so it's consistent on every wall regardless of
+    // which of the 4 cardinal faces it's mounted on.
+    float rightDx = faceDz * halfW, rightDz = -faceDx * halfW;
+
     Vector3 pos = { facePos.x, WALL_HEIGHT * 0.62f, facePos.z };
-    Vector2 size = { 1.7f, 0.85f };
+    Vector3 topLeft     = { pos.x - rightDx, pos.y + halfH, pos.z - rightDz };
+    Vector3 topRight    = { pos.x + rightDx, pos.y + halfH, pos.z + rightDz };
+    Vector3 bottomRight = { pos.x + rightDx, pos.y - halfH, pos.z + rightDz };
+    Vector3 bottomLeft  = { pos.x - rightDx, pos.y - halfH, pos.z - rightDz };
+
     Color tint = ApplyFog(WHITE, pos, cameraPos);
-    DrawBillboardRec(camera, tex, src, pos, size, tint);
+
+    rlSetTexture(tex.id);
+    rlBegin(RL_QUADS);
+        rlColor4ub(tint.r, tint.g, tint.b, tint.a);
+        rlNormal3f(faceDx, 0.0f, faceDz);
+        rlTexCoord2f(0.0f, 0.0f); rlVertex3f(topLeft.x, topLeft.y, topLeft.z);
+        rlTexCoord2f(0.0f, 1.0f); rlVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);
+        rlTexCoord2f(1.0f, 1.0f); rlVertex3f(bottomRight.x, bottomRight.y, bottomRight.z);
+        rlTexCoord2f(1.0f, 0.0f); rlVertex3f(topRight.x, topRight.y, topRight.z);
+    rlEnd();
+    rlSetTexture(0);
 }
 
 void Maze_Draw(const Maze *m, bool kioskSolved, Camera3D camera) {
@@ -543,16 +580,25 @@ void Maze_Draw(const Maze *m, bool kioskSolved, Camera3D camera) {
     for (int r = 0; r < m->height; r++) {
         for (int c = 0; c < m->width; c++) {
             CellType t = m->cells[r][c];
-            if (t == CELL_WALL) {
+            if (t == CELL_FLOOR) {
+                if (CellHash(r, c) % 13 == 0) {
+                    Vector3 cellCenter = Maze_CellToWorld(m, c, r);
+                    DrawCeilingFixture(cellCenter, cameraPos);
+                }
+            } else if (t == CELL_WALL) {
                 Vector3 p = Maze_CellToWorld(m, c, r);
                 p.y = WALL_HEIGHT / 2.0f;
 
                 unsigned int hash = CellHash(r, c);
                 bool isCavity = (hash % 7 == 0);
+                // A little per-cell brightness jitter so identical wall
+                // cells don't all read as one uniform painted-on color.
+                float jitter = (float)((hash >> 4) % 21) / 100.0f - 0.10f;
+                Color wallTint = ColorBrightness(baseWall, jitter);
                 if (isCavity) {
                     DrawWallCavity(p, m->wallColor, cameraPos);
                 } else {
-                    DrawCube(p, CELL_SIZE, WALL_HEIGHT, CELL_SIZE, ApplyFog(baseWall, p, cameraPos));
+                    DrawCube(p, CELL_SIZE, WALL_HEIGHT, CELL_SIZE, ApplyFog(wallTint, p, cameraPos));
                 }
 
                 Vector3 stripPos = { p.x, WALL_HEIGHT - 0.14f, p.z };
@@ -561,13 +607,13 @@ void Maze_Draw(const Maze *m, bool kioskSolved, Camera3D camera) {
                 DrawWallDetails(p, m->wallColor, r, c, cameraPos, isCavity);
 
                 float faceDx = 0.0f, faceDz = 0.0f;
-                if (!isCavity && hash % 11 == 3 && FindExposedDirection(m, r, c, &faceDx, &faceDz)) {
+                if (!isCavity && hash % 5 == 2 && FindExposedDirection(m, r, c, &faceDx, &faceDz)) {
                     Vector3 facePos = {
-                        p.x + faceDx * (CELL_SIZE / 2.0f - 0.05f),
+                        p.x + faceDx * (CELL_SIZE / 2.0f - 0.03f),
                         p.y,
-                        p.z + faceDz * (CELL_SIZE / 2.0f - 0.05f)
+                        p.z + faceDz * (CELL_SIZE / 2.0f - 0.03f)
                     };
-                    DrawWallSign(camera, facePos, (SignId)(hash % SIGN_COUNT), cameraPos);
+                    DrawWallSign(facePos, faceDx, faceDz, (SignId)(hash % SIGN_COUNT), cameraPos);
                 }
             } else if (t == CELL_BLOCK && !kioskSolved) {
                 Vector3 p = Maze_CellToWorld(m, c, r);

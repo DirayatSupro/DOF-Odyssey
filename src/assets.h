@@ -17,14 +17,19 @@ typedef enum {
     SIGN_CAUTION,
     SIGN_AIRLOCK,
     SIGN_DESIGNATION,
+    SIGN_DESIGNATION_2,
+    SIGN_DESIGNATION_3,
     SIGN_NO_ENTRY,
     SIGN_GAUGE,
     SIGN_SCHEMATIC,
     SIGN_VENT,
+    SIGN_HAZARD_STRIPE,
+    SIGN_POWER,
+    SIGN_VALVE,
     SIGN_COUNT
 } SignId;
 
-extern RenderTexture2D signs[SIGN_COUNT];
+extern Texture2D signs[SIGN_COUNT];
 
 typedef struct {
     Music oot;
