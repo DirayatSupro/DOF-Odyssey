@@ -9,6 +9,7 @@ const Color COL_PANEL_BORDER  = (Color){ 42, 48, 80, 255 };
 const Color COL_ACCENT        = (Color){ 124, 108, 246, 255 };
 const Color COL_ACCENT_DIM    = (Color){ 90, 78, 190, 255 };
 const Color COL_TEXT          = (Color){ 240, 238, 230, 255 };
+const Color COL_TEXT_SOFT     = (Color){ 202, 208, 226, 255 };
 const Color COL_TEXT_DIM      = (Color){ 136, 145, 176, 255 };
 const Color COL_DANGER        = (Color){ 235, 100, 100, 255 };
 const Color COL_SUCCESS       = (Color){ 90, 200, 140, 255 };

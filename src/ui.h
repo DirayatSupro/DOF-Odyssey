@@ -9,7 +9,7 @@
 void UI_DrawStartMenu(void);
 void UI_DrawSettings(AppScreen backTarget);
 void UI_DrawLeaderboard(void);
-void UI_DrawGameScript(void);
+void UI_DrawGameScript(bool preGame);
 void UI_DrawPauseMenu(void);
 void UI_DrawPauseRestartConfirm(void);
 

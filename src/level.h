@@ -20,6 +20,9 @@ typedef struct {
     float dofBannerTimer; // >0 while the "Degree of Freedom unlocked" banner is showing
     bool ending;          // true once the level-5 exit is reached: player floats, then the game ends
     float endingTimer;
+    float subtitleCooldown; // counts down to the next ambient subtitle line
+    float subtitleShowTimer; // >0 while a subtitle line is currently on screen
+    int subtitleIndex;
 } LevelState;
 
 extern LevelState levelState;

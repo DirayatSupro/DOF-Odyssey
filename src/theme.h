@@ -10,6 +10,7 @@ extern const Color COL_PANEL_BORDER;
 extern const Color COL_ACCENT;
 extern const Color COL_ACCENT_DIM;
 extern const Color COL_TEXT;
+extern const Color COL_TEXT_SOFT;
 extern const Color COL_TEXT_DIM;
 extern const Color COL_DANGER;
 extern const Color COL_SUCCESS;

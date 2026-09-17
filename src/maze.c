@@ -431,22 +431,60 @@ static unsigned int CellHash(int r, int c) {
 // access-panel detail with its own indicator light. Everything is
 // symmetric front/back/left/right (like the ceiling strip) since we don't
 // track which face of the cube is actually exposed to the corridor.
-static void DrawWallDetails(Vector3 p, Color wallColor, int row, int col, Vector3 cameraPos) {
-    Vector3 seamPos = { p.x, WALL_HEIGHT * 0.58f, p.z };
-    DrawCube(seamPos, CELL_SIZE * 0.98f, 0.07f, CELL_SIZE * 0.98f, ApplyFog(ColorBrightness(wallColor, -0.5f), seamPos, cameraPos));
+// Skips the mid-seam (and the access panel) on cavity cells, since a full
+// -width slab would just cut across the open cavity below.
+static void DrawWallDetails(Vector3 p, Color wallColor, int row, int col, Vector3 cameraPos, bool isCavity) {
+    if (!isCavity) {
+        Vector3 seamPos = { p.x, WALL_HEIGHT * 0.58f, p.z };
+        DrawCube(seamPos, CELL_SIZE * 0.98f, 0.07f, CELL_SIZE * 0.98f, ApplyFog(ColorBrightness(wallColor, -0.5f), seamPos, cameraPos));
+    }
 
     Vector3 pipePos = { p.x, WALL_HEIGHT * 0.16f, p.z };
     DrawCube(pipePos, CELL_SIZE * 1.01f, 0.22f, CELL_SIZE * 1.01f, ApplyFog((Color){ 96, 101, 112, 255 }, pipePos, cameraPos));
     DrawCube(pipePos, CELL_SIZE * 0.5f, 0.24f, CELL_SIZE * 0.5f, ApplyFog((Color){ 118, 123, 134, 255 }, pipePos, cameraPos));
 
     unsigned int hash = CellHash(row, col);
-    if (hash % 4 == 0) {
+    if (!isCavity && hash % 4 == 0) {
         Vector3 panelPos = { p.x, WALL_HEIGHT * 0.42f, p.z };
         DrawCube(panelPos, CELL_SIZE * 0.4f, 0.5f, CELL_SIZE * 0.4f, ApplyFog(ColorBrightness(wallColor, -0.55f), panelPos, cameraPos));
 
         Color indicator = (hash % 8 == 0) ? (Color){ 235, 100, 90, 255 } : (Color){ 110, 220, 200, 255 };
         float pulse = 0.6f + 0.4f * sinf((float)GetTime() * 3.0f + (float)hash);
         DrawCube(panelPos, CELL_SIZE * 0.1f, 0.52f, CELL_SIZE * 0.1f, ApplyFog(Fade(indicator, pulse), panelPos, cameraPos));
+    }
+}
+
+// A genuine hollowed-out recess through the middle of the wall cell instead
+// of a solid block: solid caps above and below a mid-height band, held
+// together by four corner pillars with nothing filling the middle - so
+// there's an actual see-through gap there (through to whatever is on the
+// far side: more rock, another corridor, or open space), not just a
+// darker patch of paint. Works from any of the 4 approach directions since
+// it's carved symmetrically rather than tied to one face.
+static void DrawWallCavity(Vector3 p, Color wallColor, Vector3 cameraPos) {
+    const float cavityBottom = WALL_HEIGHT * 0.32f;
+    const float cavityTop = WALL_HEIGHT * 0.8f;
+    const float pillar = CELL_SIZE * 0.24f;
+    Color capColor = ColorBrightness(wallColor, -0.45f);
+    Color frameColor = ColorBrightness(wallColor, -0.15f);
+
+    Vector3 topCapPos = { p.x, (cavityTop + WALL_HEIGHT) / 2.0f, p.z };
+    DrawCube(topCapPos, CELL_SIZE, WALL_HEIGHT - cavityTop, CELL_SIZE, ApplyFog(capColor, topCapPos, cameraPos));
+
+    Vector3 botCapPos = { p.x, cavityBottom / 2.0f, p.z };
+    DrawCube(botCapPos, CELL_SIZE, cavityBottom, CELL_SIZE, ApplyFog(capColor, botCapPos, cameraPos));
+
+    float off = CELL_SIZE / 2.0f - pillar / 2.0f;
+    float bandH = cavityTop - cavityBottom;
+    float bandY = (cavityBottom + cavityTop) / 2.0f;
+    Vector3 corners[4] = {
+        { p.x - off, bandY, p.z - off },
+        { p.x + off, bandY, p.z - off },
+        { p.x - off, bandY, p.z + off },
+        { p.x + off, bandY, p.z + off },
+    };
+    for (int i = 0; i < 4; i++) {
+        DrawCube(corners[i], pillar, bandH, pillar, ApplyFog(frameColor, corners[i], cameraPos));
     }
 }
 
@@ -472,12 +510,18 @@ void Maze_Draw(const Maze *m, bool kioskSolved, Vector3 cameraPos) {
             if (t == CELL_WALL) {
                 Vector3 p = Maze_CellToWorld(m, c, r);
                 p.y = WALL_HEIGHT / 2.0f;
-                DrawCube(p, CELL_SIZE, WALL_HEIGHT, CELL_SIZE, ApplyFog(baseWall, p, cameraPos));
+
+                bool isCavity = (CellHash(r, c) % 7 == 0);
+                if (isCavity) {
+                    DrawWallCavity(p, m->wallColor, cameraPos);
+                } else {
+                    DrawCube(p, CELL_SIZE, WALL_HEIGHT, CELL_SIZE, ApplyFog(baseWall, p, cameraPos));
+                }
 
                 Vector3 stripPos = { p.x, WALL_HEIGHT - 0.14f, p.z };
                 DrawCube(stripPos, CELL_SIZE * 0.94f, 0.1f, CELL_SIZE * 0.94f, ApplyFog(stripColor, stripPos, cameraPos));
 
-                DrawWallDetails(p, m->wallColor, r, c, cameraPos);
+                DrawWallDetails(p, m->wallColor, r, c, cameraPos, isCavity);
             } else if (t == CELL_BLOCK && !kioskSolved) {
                 Vector3 p = Maze_CellToWorld(m, c, r);
                 p.y = WALL_HEIGHT / 2.0f;

@@ -26,7 +26,7 @@ int main(void) {
         float dt = GetFrameTime();
         Audio_UpdateMusic();
 
-        bool musicScreen = (app.screen == SCREEN_START_MENU || app.screen == SCREEN_SETTINGS || app.screen == SCREEN_LEADERBOARD);
+        bool musicScreen = (app.screen == SCREEN_START_MENU || app.screen == SCREEN_SETTINGS || app.screen == SCREEN_LEADERBOARD || app.screen == SCREEN_GAME_SCRIPT);
         Audio_SetMusicPlaying(musicScreen);
 
         if (IsKeyPressed(KEY_F11)) {
@@ -61,7 +61,7 @@ int main(void) {
                 UI_DrawLeaderboard();
                 break;
             case SCREEN_GAME_SCRIPT:
-                UI_DrawGameScript();
+                UI_DrawGameScript(true);
                 break;
             case SCREEN_PLAYING:
                 Level_Draw();
@@ -76,7 +76,7 @@ int main(void) {
                 UI_DrawSettings(SCREEN_PAUSED);
                 break;
             case SCREEN_PAUSE_SCRIPT:
-                UI_DrawGameScript();
+                UI_DrawGameScript(false);
                 break;
         }
 

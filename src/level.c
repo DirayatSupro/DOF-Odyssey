@@ -17,6 +17,32 @@ static unsigned int GrantFlagForLevel(int lvl) {
     }
 }
 
+static const char *ambientSubtitles[] = {
+    "Gotta reach the cockpit...",
+    "Come on, Rocky. Keep moving.",
+    "One system at a time. Focus.",
+    "The Odyssey won't fix herself.",
+    "Every degree of freedom counts.",
+    "Stay sharp. Not out of this yet.",
+    "The cockpit's waiting for you.",
+    "Just a little further.",
+    "Don't stop now.",
+    "Whatever locked this down, it's not stopping me.",
+};
+#define AMBIENT_SUBTITLE_COUNT (int)(sizeof(ambientSubtitles) / sizeof(ambientSubtitles[0]))
+
+static void QueueNextSubtitle(void) {
+    if (AMBIENT_SUBTITLE_COUNT <= 1) {
+        levelState.subtitleIndex = 0;
+    } else {
+        int idx;
+        do { idx = GetRandomValue(0, AMBIENT_SUBTITLE_COUNT - 1); } while (idx == levelState.subtitleIndex);
+        levelState.subtitleIndex = idx;
+    }
+    levelState.subtitleShowTimer = 4.5f;
+    levelState.subtitleCooldown = (float)GetRandomValue(18, 34);
+}
+
 static const char *DofUnlockLabel(int levelIndex) {
     switch (levelIndex) {
         case 1: return "Moving Backwards";
@@ -57,6 +83,9 @@ static void EnterLevel(int levelIndex, bool solved) {
     levelState.inMinigame = false;
     levelState.ending = false;
     levelState.endingTimer = 0.0f;
+    levelState.subtitleShowTimer = 0.0f;
+    levelState.subtitleCooldown = (float)GetRandomValue(8, 16);
+    levelState.subtitleIndex = -1;
 }
 
 void Level_StartNew(const char *playerName) {
@@ -169,6 +198,10 @@ void Level_Update(float dt) {
 
     if (!IsSoundPlaying(audio.ambientEngine)) Audio_Play(audio.ambientEngine);
 
+    if (levelState.subtitleShowTimer > 0.0f) levelState.subtitleShowTimer -= dt;
+    levelState.subtitleCooldown -= dt;
+    if (levelState.subtitleCooldown <= 0.0f) QueueNextSubtitle();
+
     Player_Update(&levelState.player, dt, levelState.dof, &levelState.maze, levelState.kioskSolved);
 
     if (!levelState.kioskSolved && Maze_NearKiosk(&levelState.maze, levelState.player.position, 2.4f)) {
@@ -207,6 +240,21 @@ static void DrawHud(void) {
 
     if (!levelState.kioskSolved && Maze_NearKiosk(&levelState.maze, levelState.player.position, 2.4f)) {
         DrawCenteredText("Press [E] to interact", VIRTUAL_WIDTH / 2, VIRTUAL_HEIGHT - 90, 24, RAYWHITE);
+    }
+
+    if (levelState.subtitleShowTimer > 0.0f && levelState.subtitleIndex >= 0) {
+        float alpha = 1.0f;
+        if (levelState.subtitleShowTimer > 4.0f) alpha = (4.5f - levelState.subtitleShowTimer) / 0.5f;
+        else if (levelState.subtitleShowTimer < 0.6f) alpha = levelState.subtitleShowTimer / 0.6f;
+        if (alpha < 0.0f) alpha = 0.0f;
+        if (alpha > 1.0f) alpha = 1.0f;
+
+        const char *line = ambientSubtitles[levelState.subtitleIndex];
+        int fontSize = 20;
+        int textW = MeasureText(line, fontSize);
+        DrawRectangleRounded((Rectangle){ VIRTUAL_WIDTH / 2.0f - textW / 2.0f - 18, VIRTUAL_HEIGHT - 142, (float)textW + 36, 34 },
+                              0.4f, 6, Fade((Color){ 10, 12, 26, 180 }, alpha));
+        DrawCenteredText(line, VIRTUAL_WIDTH / 2, VIRTUAL_HEIGHT - 135, fontSize, Fade((Color){ 210, 215, 235, 255 }, alpha));
     }
 
     if (levelState.dofBannerTimer > 0.0f) {

@@ -29,9 +29,7 @@ void UI_DrawStartMenu(void) {
     bool clicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 
     if (clicked && CheckCollisionPointRec(mouse, newGame)) {
-        Level_StartNew("");
-        app.screen = SCREEN_PLAYING;
-        Level_OnScreenActivated();
+        app.screen = SCREEN_GAME_SCRIPT;
     } else if (clicked && CheckCollisionPointRec(mouse, continueG)) {
         if (app.save.hasSave) {
             Level_LoadFromSave();
@@ -165,27 +163,30 @@ static const ScriptLine scriptLines[] = {
 
 static float scriptScroll = 0.0f;
 
-void UI_DrawGameScript(void) {
+void UI_DrawGameScript(bool preGame) {
     DrawSpaceBackdrop(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
     int sw = VIRTUAL_WIDTH;
     int sh = VIRTUAL_HEIGHT;
-    Rectangle panel = { sw / 2.0f - 380, 40, 760, (float)sh - 80 };
-    DrawRectangleRounded(panel, 0.04f, 8, COL_PANEL);
-    DrawRectangleRoundedLinesEx(panel, 0.04f, 8, 2.0f, COL_PANEL_BORDER);
+    Rectangle panel = { sw / 2.0f - 430, 30, 860, (float)sh - 60 };
+    DrawRectangleRounded(panel, 0.035f, 8, COL_PANEL);
+    DrawRectangleRoundedLinesEx(panel, 0.035f, 8, 2.0f, COL_PANEL_BORDER);
 
-    DrawCenteredText("GAME SCRIPT", sw / 2, (int)panel.y + 20, 28, COL_TEXT);
+    DrawCenteredText("GAME SCRIPT", sw / 2, (int)panel.y + 18, 28, COL_TEXT);
+    if (preGame) {
+        DrawCenteredText("Read the mission briefing, then begin sector 1.", sw / 2, (int)panel.y + 50, 15, COL_TEXT_DIM);
+    }
 
-    float contentTop = panel.y + 64;
+    float contentTop = panel.y + (preGame ? 82.0f : 64.0f);
     float contentBottom = panel.y + panel.height - 70;
     float contentHeight = contentBottom - contentTop;
     int lineCount = (int)(sizeof(scriptLines) / sizeof(scriptLines[0]));
-    const int lineHeight = 22;
+    const int lineHeight = 26;
     float totalHeight = (float)(lineCount * lineHeight);
     float maxScroll = totalHeight - contentHeight;
     if (maxScroll < 0.0f) maxScroll = 0.0f;
 
-    scriptScroll -= GetMouseWheelMove() * 32.0f;
+    scriptScroll -= GetMouseWheelMove() * 36.0f;
     if (scriptScroll < 0.0f) scriptScroll = 0.0f;
     if (scriptScroll > maxScroll) scriptScroll = maxScroll;
 
@@ -193,9 +194,9 @@ void UI_DrawGameScript(void) {
     for (int i = 0; i < lineCount; i++) {
         float y = contentTop + i * lineHeight - scriptScroll;
         if (y < contentTop - lineHeight || y > contentBottom) continue;
-        Color c = scriptLines[i].isHeader ? COL_ACCENT : COL_TEXT_DIM;
-        int fontSize = scriptLines[i].isHeader ? 18 : 16;
-        DrawText(scriptLines[i].text, (int)panel.x + 30, (int)y, fontSize, c);
+        Color c = scriptLines[i].isHeader ? COL_ACCENT : COL_TEXT_SOFT;
+        int fontSize = scriptLines[i].isHeader ? 21 : 19;
+        DrawText(scriptLines[i].text, (int)panel.x + 34, (int)y, fontSize, c);
     }
     EndScissorMode();
 
@@ -204,16 +205,24 @@ void UI_DrawGameScript(void) {
         float thumbH = trackH * (contentHeight / totalHeight);
         if (thumbH < 24.0f) thumbH = 24.0f;
         float thumbY = contentTop + (trackH - thumbH) * (scriptScroll / maxScroll);
-        Rectangle track = { panel.x + panel.width - 14, contentTop, 6, trackH };
-        Rectangle thumb = { panel.x + panel.width - 14, thumbY, 6, thumbH };
+        Rectangle track = { panel.x + panel.width - 16, contentTop, 7, trackH };
+        Rectangle thumb = { panel.x + panel.width - 16, thumbY, 7, thumbH };
         DrawRectangleRounded(track, 0.5f, 4, (Color){ 30, 34, 60, 255 });
         DrawRectangleRounded(thumb, 0.5f, 4, COL_ACCENT_DIM);
-        DrawCenteredText("scroll for more", sw / 2, (int)(contentBottom + 6), 13, COL_TEXT_DIM);
+        DrawCenteredText("scroll for more", sw / 2, (int)(contentBottom + 8), 14, COL_TEXT_DIM);
     }
 
-    Rectangle backBtn = { panel.x + panel.width / 2 - 130, panel.y + panel.height - 56, 260, 44 };
-    if (UiButton(backBtn, "Back", false, false)) {
-        app.screen = SCREEN_PAUSED;
+    Rectangle actionBtn = { panel.x + panel.width / 2 - 150, panel.y + panel.height - 56, 300, 44 };
+    if (preGame) {
+        if (UiButton(actionBtn, "Begin Sector 1", true, false)) {
+            Level_StartNew("");
+            app.screen = SCREEN_PLAYING;
+            Level_OnScreenActivated();
+        }
+    } else {
+        if (UiButton(actionBtn, "Back", false, false)) {
+            app.screen = SCREEN_PAUSED;
+        }
     }
 }
 
