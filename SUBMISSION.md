@@ -39,11 +39,18 @@ for the next sector, now with more ways to move.
 
 ## Engine, framework, and major tools used
 - [Raylib](https://www.raylib.com/) 6.0 (C11), built with GCC/Clang + `make`.
+- Web build compiled with Emscripten (raylib for PLATFORM_WEB).
 - No other engine, framework, or third-party game library.
 
-## Run instructions and controls
-See [README.md](README.md) for full build/run steps per OS. Quick version:
+## Platform submitted
+Web (HTML5/WebAssembly) build - playable directly on the itch.io page.
+A native desktop build (macOS, tested; Linux/Windows via the same Makefile,
+untested) is also in the GitHub repo.
 
+## Run instructions and controls
+Web build: open the itch.io page and click Run/Play - no install needed.
+
+To build from source, see [README.md](README.md). Quick version:
 ```bash
 brew install raylib   # macOS; see README for Linux/Windows-MSYS64
 make run
@@ -58,10 +65,13 @@ README.
 - Code implemented with AI pair-programming assistance (Claude, Anthropic)
   from the team's design document and assets; all creative direction,
   testing, and acceptance decisions were the team's.
-- Raylib 6.0 (zlib license).
+- Raylib 6.0 (zlib license). Emscripten (web build toolchain).
 
 ## Known bugs / limitations
-- Built and playtested on macOS; not build-tested on Windows or Linux.
+- Native build tested on macOS only; Linux/Windows untested (same Makefile
+  should work, per its documented per-OS flags).
+- The web build's save/leaderboard files live in the browser's virtual
+  filesystem, so they reset on page reload.
 - Maze layout and Flow Free solution are randomized per run by design —
   expect a different layout each time you play.
 

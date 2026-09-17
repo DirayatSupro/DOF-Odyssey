@@ -43,7 +43,7 @@ endif
 
 TARGET := $(BUILD_DIR)/$(PROJECT_NAME)$(EXE_EXT)
 
-.PHONY: all run clean dirs
+.PHONY: all run clean dirs web
 
 all: $(TARGET)
 
@@ -57,5 +57,26 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 run: all
 	./$(TARGET)
 
+# Web (WebAssembly) build via Emscripten. Requires the Emscripten SDK
+# (emsdk) activated in your shell, and a copy of raylib's source built for
+# PLATFORM_WEB (see https://github.com/raysan5/raylib/wiki/Working-for-Web-(HTML5)):
+#   git clone --branch 6.0 https://github.com/raysan5/raylib.git
+#   cd raylib/src && make PLATFORM=PLATFORM_WEB
+# then point RAYLIB_WEB_SRC at that raylib/src directory, e.g.:
+#   make web RAYLIB_WEB_SRC=../raylib/src
+WEB_DIR := webbuild
+RAYLIB_WEB_SRC ?= ../raylib/src
+
+web:
+	@mkdir -p $(WEB_DIR)
+	emcc -o $(WEB_DIR)/index.html $(SOURCES) \
+		-Os -Wall \
+		-I$(SRC_DIR) -I$(RAYLIB_WEB_SRC) \
+		-L$(RAYLIB_WEB_SRC) -lraylib.web \
+		-s USE_GLFW=3 -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY \
+		--preload-file assets \
+		-DPLATFORM_WEB
+	@echo "Web build ready: $(WEB_DIR)/index.html (serve over HTTP, e.g. 'python3 -m http.server' from $(WEB_DIR))"
+
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) $(WEB_DIR)

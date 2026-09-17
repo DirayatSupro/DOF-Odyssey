@@ -25,6 +25,21 @@ The `Makefile` auto-detects macOS, Linux, and Windows (MSYS64/MinGW) and links t
 right system libraries for each. On macOS it looks up Raylib via `brew --prefix raylib`
 automatically.
 
+### Web (WebAssembly) build
+
+A browser-playable build is also supported via [Emscripten](https://emscripten.org/):
+
+```bash
+git clone --branch 6.0 https://github.com/raysan5/raylib.git ../raylib
+(cd ../raylib/src && make PLATFORM=PLATFORM_WEB)
+make web RAYLIB_WEB_SRC=../raylib/src
+cd webbuild && python3 -m http.server   # then open the printed localhost URL
+```
+
+This produces `webbuild/index.html` + `.js`/`.wasm`/`.data` files - zip all four
+together for an itch.io HTML5 upload (check "This file will be played in the browser"
+and set `index.html` as the entry point).
+
 ### VS Code
 
 Just open the `odyssey/` folder and run `make run` in the integrated terminal (or wire
