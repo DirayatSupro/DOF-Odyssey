@@ -17,6 +17,16 @@ static unsigned int GrantFlagForLevel(int lvl) {
     }
 }
 
+static const char *DofUnlockLabel(int levelIndex) {
+    switch (levelIndex) {
+        case 1: return "Moving Backwards";
+        case 2: return "Moving Left";
+        case 3: return "Moving Right";
+        case 4: return "Using the Spacebar";
+        default: return "the Key to the Cockpit";
+    }
+}
+
 const char *Level_GetName(int levelIndex) {
     switch (levelIndex) {
         case 1: return "The Corridor";
@@ -113,6 +123,7 @@ static void AdvanceToNextLevel(void) {
 
 void Level_Update(float dt) {
     levelState.totalElapsed += dt;
+    if (levelState.dofBannerTimer > 0.0f) levelState.dofBannerTimer -= dt;
 
     if (levelState.inMinigame) {
         MinigameStatus status = levelState.activeMinigame.Update(dt);
@@ -123,6 +134,7 @@ void Level_Update(float dt) {
 
             levelState.kioskSolved = true;
             levelState.inMinigame = false;
+            levelState.dofBannerTimer = 3.2f;
             DisableCursor();
             Audio_StopAllOneShots();
             Audio_Play(audio.minigameComplete);
@@ -171,6 +183,27 @@ static void DrawHud(void) {
     if (!levelState.kioskSolved && Maze_NearKiosk(&levelState.maze, levelState.player.position, 2.4f)) {
         DrawCenteredText("Press [E] to interact", VIRTUAL_WIDTH / 2, VIRTUAL_HEIGHT - 90, 24, RAYWHITE);
     }
+
+    if (levelState.dofBannerTimer > 0.0f) {
+        const float totalDuration = 3.2f;
+        float elapsed = totalDuration - levelState.dofBannerTimer;
+        float fadeIn = elapsed < 0.3f ? elapsed / 0.3f : 1.0f;
+        float fadeOut = levelState.dofBannerTimer < 0.45f ? levelState.dofBannerTimer / 0.45f : 1.0f;
+        float alpha = fadeIn < fadeOut ? fadeIn : fadeOut;
+        float y = 28.0f + (1.0f - fadeIn) * -22.0f;
+
+        const char *sub = DofUnlockLabel(levelState.levelIndex);
+        int titleSize = 22, subSize = 18;
+        int titleW = MeasureText("DEGREE OF FREEDOM UNLOCKED", titleSize);
+        int subW = MeasureText(sub, subSize);
+        float panelW = (float)(titleW > subW ? titleW : subW) + 60.0f;
+        Rectangle panel = { VIRTUAL_WIDTH / 2.0f - panelW / 2.0f, y, panelW, 70.0f };
+
+        DrawRectangleRounded(panel, 0.2f, 8, Fade((Color){ 18, 22, 46, 235 }, alpha));
+        DrawRectangleRoundedLinesEx(panel, 0.2f, 8, 2.0f, Fade(COL_ACCENT, alpha));
+        DrawCenteredText("DEGREE OF FREEDOM UNLOCKED", VIRTUAL_WIDTH / 2, (int)(panel.y + 10), titleSize, Fade(COL_ACCENT, alpha));
+        DrawCenteredText(sub, VIRTUAL_WIDTH / 2, (int)(panel.y + 38), subSize, Fade(COL_TEXT, alpha));
+    }
 }
 
 void Level_Draw(void) {
@@ -184,7 +217,7 @@ void Level_Draw(void) {
     Camera3D cam = Player_GetCamera(&levelState.player);
     ClearBackground((Color){ 6, 8, 20, 255 });
     BeginMode3D(cam);
-    Maze_Draw(&levelState.maze, levelState.kioskSolved);
+    Maze_Draw(&levelState.maze, levelState.kioskSolved, cam.position);
     EndMode3D();
 
     DrawHud();

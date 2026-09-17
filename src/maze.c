@@ -389,7 +389,29 @@ static void DrawFloorArrow(Vector3 center, float yawDeg, Color color) {
     rlPopMatrix();
 }
 
-void Maze_Draw(const Maze *m, bool kioskSolved) {
+// Matches level.c's 3D backdrop clear color, so fogged geometry fades into
+// the background instead of into a mismatched gray.
+static const Color FOG_COLOR = { 6, 8, 20, 255 };
+#define FOG_NEAR 6.0f
+#define FOG_FAR 30.0f
+
+static Color ApplyFog(Color c, Vector3 worldPos, Vector3 cameraPos) {
+    float dx = worldPos.x - cameraPos.x;
+    float dy = worldPos.y - cameraPos.y;
+    float dz = worldPos.z - cameraPos.z;
+    float dist = sqrtf(dx * dx + dy * dy + dz * dz);
+    float t = (dist - FOG_NEAR) / (FOG_FAR - FOG_NEAR);
+    if (t < 0.0f) t = 0.0f;
+    if (t > 1.0f) t = 1.0f;
+    return (Color){
+        (unsigned char)(c.r + (FOG_COLOR.r - c.r) * t),
+        (unsigned char)(c.g + (FOG_COLOR.g - c.g) * t),
+        (unsigned char)(c.b + (FOG_COLOR.b - c.b) * t),
+        c.a
+    };
+}
+
+void Maze_Draw(const Maze *m, bool kioskSolved, Vector3 cameraPos) {
     DrawStars();
 
     float w = (float)m->width * CELL_SIZE;
@@ -397,17 +419,28 @@ void Maze_Draw(const Maze *m, bool kioskSolved) {
     DrawPlane((Vector3){ 0, 0, 0 }, (Vector2){ w, h }, m->floorColor);
     DrawPlane((Vector3){ 0, WALL_HEIGHT, 0 }, (Vector2){ w, h }, (Color){ 15, 18, 35, 255 });
 
+    // Walls are drawn dark/neutral with a bright glowing accent strip near
+    // the ceiling in the level's theme color - closer to a lit corridor
+    // panel than a solid block of color - and both are faded toward the
+    // background with distance so the corridor has real depth instead of
+    // every wall reading at full brightness regardless of how far away it is.
+    Color baseWall = ColorBrightness(m->wallColor, -0.45f);
+    Color stripColor = ColorBrightness(m->wallColor, 0.65f);
+
     for (int r = 0; r < m->height; r++) {
         for (int c = 0; c < m->width; c++) {
             CellType t = m->cells[r][c];
             if (t == CELL_WALL) {
                 Vector3 p = Maze_CellToWorld(m, c, r);
                 p.y = WALL_HEIGHT / 2.0f;
-                DrawCube(p, CELL_SIZE, WALL_HEIGHT, CELL_SIZE, m->wallColor);
+                DrawCube(p, CELL_SIZE, WALL_HEIGHT, CELL_SIZE, ApplyFog(baseWall, p, cameraPos));
+
+                Vector3 stripPos = { p.x, WALL_HEIGHT - 0.14f, p.z };
+                DrawCube(stripPos, CELL_SIZE * 0.94f, 0.1f, CELL_SIZE * 0.94f, ApplyFog(stripColor, stripPos, cameraPos));
             } else if (t == CELL_BLOCK && !kioskSolved) {
                 Vector3 p = Maze_CellToWorld(m, c, r);
                 p.y = WALL_HEIGHT / 2.0f;
-                DrawCube(p, CELL_SIZE, WALL_HEIGHT, CELL_SIZE, (Color){ 200, 70, 70, 180 });
+                DrawCube(p, CELL_SIZE, WALL_HEIGHT, CELL_SIZE, ApplyFog((Color){ 200, 70, 70, 180 }, p, cameraPos));
                 DrawCubeWires(p, CELL_SIZE, WALL_HEIGHT, CELL_SIZE, (Color){ 255, 150, 150, 255 });
             }
         }

@@ -17,6 +17,7 @@ typedef struct {
     bool hasCockpitKey;
     char playerName[32];
     float totalElapsed;
+    float dofBannerTimer; // >0 while the "Degree of Freedom unlocked" banner is showing
 } LevelState;
 
 extern LevelState levelState;
