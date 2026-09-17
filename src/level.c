@@ -303,7 +303,7 @@ void Level_Draw(void) {
     Camera3D cam = Player_GetCamera(&levelState.player);
     ClearBackground((Color){ 6, 8, 20, 255 });
     BeginMode3D(cam);
-    Maze_Draw(&levelState.maze, levelState.kioskSolved, cam.position);
+    Maze_Draw(&levelState.maze, levelState.kioskSolved, cam);
     EndMode3D();
 
     if (levelState.ending) {

@@ -1,4 +1,5 @@
 #include "maze.h"
+#include "assets.h"
 #include "rlgl.h"
 #include <string.h>
 #include <math.h>
@@ -488,7 +489,23 @@ static void DrawWallCavity(Vector3 p, Color wallColor, Vector3 cameraPos) {
     }
 }
 
-void Maze_Draw(const Maze *m, bool kioskSolved, Vector3 cameraPos) {
+// Mounts one of the procedurally-generated sign textures (assets.c) flat
+// against a wall cell as a camera-facing billboard. Billboards always face
+// the viewer, but since the player can only ever approach a given wall cell
+// from within the (1-cell-wide) corridor beside it, this reads the same as
+// a properly oriented flat decal in practice while being far simpler than
+// tracking which face of the symmetric wall cube is actually exposed.
+static void DrawWallSign(Camera3D camera, Vector3 p, SignId signId, Vector3 cameraPos) {
+    Texture2D tex = signs[signId].texture;
+    Rectangle src = { 0, 0, (float)tex.width, -(float)tex.height };
+    Vector3 pos = { p.x, WALL_HEIGHT * 0.62f, p.z };
+    Vector2 size = { 1.7f, 0.85f };
+    Color tint = ApplyFog(WHITE, pos, cameraPos);
+    DrawBillboardRec(camera, tex, src, pos, size, tint);
+}
+
+void Maze_Draw(const Maze *m, bool kioskSolved, Camera3D camera) {
+    Vector3 cameraPos = camera.position;
     DrawStars();
 
     float w = (float)m->width * CELL_SIZE;
@@ -511,7 +528,8 @@ void Maze_Draw(const Maze *m, bool kioskSolved, Vector3 cameraPos) {
                 Vector3 p = Maze_CellToWorld(m, c, r);
                 p.y = WALL_HEIGHT / 2.0f;
 
-                bool isCavity = (CellHash(r, c) % 7 == 0);
+                unsigned int hash = CellHash(r, c);
+                bool isCavity = (hash % 7 == 0);
                 if (isCavity) {
                     DrawWallCavity(p, m->wallColor, cameraPos);
                 } else {
@@ -522,6 +540,10 @@ void Maze_Draw(const Maze *m, bool kioskSolved, Vector3 cameraPos) {
                 DrawCube(stripPos, CELL_SIZE * 0.94f, 0.1f, CELL_SIZE * 0.94f, ApplyFog(stripColor, stripPos, cameraPos));
 
                 DrawWallDetails(p, m->wallColor, r, c, cameraPos, isCavity);
+
+                if (!isCavity && hash % 11 == 3) {
+                    DrawWallSign(camera, p, (SignId)(hash % SIGN_COUNT), cameraPos);
+                }
             } else if (t == CELL_BLOCK && !kioskSolved) {
                 Vector3 p = Maze_CellToWorld(m, c, r);
                 p.y = WALL_HEIGHT / 2.0f;

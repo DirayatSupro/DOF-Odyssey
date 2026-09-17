@@ -48,6 +48,6 @@ bool Maze_CircleWalkable(const Maze *m, float x, float z, float radius, bool kio
 bool Maze_NearKiosk(const Maze *m, Vector3 pos, float radius);
 bool Maze_ReachedExit(const Maze *m, Vector3 pos, float radius);
 
-void Maze_Draw(const Maze *m, bool kioskSolved, Vector3 cameraPos);
+void Maze_Draw(const Maze *m, bool kioskSolved, Camera3D camera);
 
 #endif

@@ -9,6 +9,23 @@ typedef struct {
     Texture2D slidingtile;
 } GameTextures;
 
+// Small procedurally-drawn wall signage - text placards and technical
+// diagrams mounted on the maze walls so they read as an actual built ship
+// interior instead of plain colored blocks. Generated once at startup
+// (see assets.c) rather than shipped as image files.
+typedef enum {
+    SIGN_CAUTION,
+    SIGN_AIRLOCK,
+    SIGN_DESIGNATION,
+    SIGN_NO_ENTRY,
+    SIGN_GAUGE,
+    SIGN_SCHEMATIC,
+    SIGN_VENT,
+    SIGN_COUNT
+} SignId;
+
+extern RenderTexture2D signs[SIGN_COUNT];
+
 typedef struct {
     Music oot;
 

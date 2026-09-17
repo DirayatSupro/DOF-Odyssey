@@ -1,9 +1,11 @@
 #include "assets.h"
 #include "app.h"
 #include "respath.h"
+#include <math.h>
 
 GameTextures textures;
 GameAudio audio;
+RenderTexture2D signs[SIGN_COUNT];
 
 static Texture2D LoadTex(const char *rel) {
     return LoadTexture(ResolvePath(rel));
@@ -11,6 +13,109 @@ static Texture2D LoadTex(const char *rel) {
 
 static Sound LoadSnd(const char *rel) {
     return LoadSound(ResolvePath(rel));
+}
+
+static RenderTexture2D MakeSignCanvas(void) {
+    RenderTexture2D rt = LoadRenderTexture(256, 128);
+    SetTextureFilter(rt.texture, TEXTURE_FILTER_BILINEAR);
+    return rt;
+}
+
+// Small placards and technical diagrams mounted on the maze walls, drawn
+// once here rather than shipped as image files - stenciled labels, hazard
+// markings, and instrument-panel-style diagrams so the corridors read as a
+// built ship interior instead of plain colored blocks.
+static void GenerateSigns(void) {
+    const int W = 256, H = 128;
+
+    signs[SIGN_CAUTION] = MakeSignCanvas();
+    BeginTextureMode(signs[SIGN_CAUTION]);
+        ClearBackground((Color){ 12, 12, 14, 255 });
+        for (int i = -14; i < W; i += 20) {
+            DrawRectangle(i, 0, 10, 14, (Color){ 235, 190, 40, 255 });
+            DrawRectangle(i, H - 14, 10, 14, (Color){ 235, 190, 40, 255 });
+        }
+        DrawRectangleLinesEx((Rectangle){ 4, 4, W - 8, H - 8 }, 3, (Color){ 220, 70, 60, 255 });
+        int cw = MeasureText("CAUTION", 34);
+        DrawText("CAUTION", W / 2 - cw / 2, H / 2 - 17, 34, (Color){ 245, 235, 210, 255 });
+    EndTextureMode();
+
+    signs[SIGN_AIRLOCK] = MakeSignCanvas();
+    BeginTextureMode(signs[SIGN_AIRLOCK]);
+        ClearBackground((Color){ 14, 22, 34, 255 });
+        DrawRectangleLinesEx((Rectangle){ 4, 4, W - 8, H - 8 }, 3, (Color){ 110, 200, 235, 255 });
+        DrawCircleLines(42, H / 2, 24, (Color){ 110, 200, 235, 255 });
+        DrawCircleLines(42, H / 2, 16, (Color){ 110, 200, 235, 255 });
+        DrawText("AIRLOCK", 84, H / 2 - 14, 28, (Color){ 225, 235, 245, 255 });
+    EndTextureMode();
+
+    signs[SIGN_DESIGNATION] = MakeSignCanvas();
+    BeginTextureMode(signs[SIGN_DESIGNATION]);
+        ClearBackground((Color){ 40, 42, 48, 255 });
+        DrawRectangleLinesEx((Rectangle){ 6, 6, W - 12, H - 12 }, 2, (Color){ 150, 155, 165, 255 });
+        int dw = MeasureText("RK-8", 46);
+        DrawText("RK-8", W / 2 - dw / 2, H / 2 - 30, 46, (Color){ 225, 228, 235, 255 });
+        const char *sub = "MAINTENANCE ACCESS";
+        int sw2 = MeasureText(sub, 13);
+        DrawText(sub, W / 2 - sw2 / 2, H - 28, 13, (Color){ 150, 155, 165, 255 });
+    EndTextureMode();
+
+    signs[SIGN_NO_ENTRY] = MakeSignCanvas();
+    BeginTextureMode(signs[SIGN_NO_ENTRY]);
+        ClearBackground((Color){ 40, 14, 14, 255 });
+        DrawCircleLines(W / 2, 46, 30, (Color){ 235, 235, 235, 255 });
+        DrawCircleLines(W / 2, 46, 29, (Color){ 235, 235, 235, 255 });
+        DrawLineEx((Vector2){ W / 2.0f - 21, 25.0f }, (Vector2){ W / 2.0f + 21, 67.0f }, 4.0f, (Color){ 235, 235, 235, 255 });
+        int nw = MeasureText("RESTRICTED", 20);
+        DrawText("RESTRICTED", W / 2 - nw / 2, 88, 20, (Color){ 235, 200, 200, 255 });
+    EndTextureMode();
+
+    signs[SIGN_GAUGE] = MakeSignCanvas();
+    BeginTextureMode(signs[SIGN_GAUGE]);
+        ClearBackground((Color){ 16, 18, 26, 255 });
+        Vector2 c = { W / 2.0f, H / 2.0f };
+        float r = 46.0f;
+        DrawCircleLines((int)c.x, (int)c.y, r, (Color){ 140, 150, 170, 255 });
+        DrawCircleLines((int)c.x, (int)c.y, r - 6, (Color){ 90, 100, 120, 255 });
+        for (int i = 0; i < 12; i++) {
+            float ang = i * (360.0f / 12.0f) * DEG2RAD;
+            Vector2 a = { c.x + cosf(ang) * (r - 10), c.y + sinf(ang) * (r - 10) };
+            Vector2 b = { c.x + cosf(ang) * r, c.y + sinf(ang) * r };
+            DrawLineEx(a, b, 2.0f, (Color){ 170, 180, 200, 255 });
+        }
+        float needleAng = 220.0f * DEG2RAD;
+        Vector2 needleEnd = { c.x + cosf(needleAng) * (r - 14), c.y + sinf(needleAng) * (r - 14) };
+        DrawLineEx(c, needleEnd, 3.0f, (Color){ 235, 120, 90, 255 });
+        DrawCircleV(c, 5.0f, (Color){ 235, 235, 235, 255 });
+    EndTextureMode();
+
+    signs[SIGN_SCHEMATIC] = MakeSignCanvas();
+    BeginTextureMode(signs[SIGN_SCHEMATIC]);
+        ClearBackground((Color){ 14, 20, 24, 255 });
+        Color ln = (Color){ 90, 180, 170, 255 };
+        DrawLine(30, 20, 30, H - 20, ln);
+        DrawLine(30, 20, W - 40, 20, ln);
+        DrawLine(W - 40, 20, W - 40, 60, ln);
+        DrawLine(W - 40, 60, W - 80, 60, ln);
+        DrawLine(W - 80, 60, W - 80, H - 20, ln);
+        DrawLine(30, H - 20, W - 80, H - 20, ln);
+        DrawLine(80, 20, 80, 50, ln);
+        DrawCircle(30, 20, 4, (Color){ 110, 220, 200, 255 });
+        DrawCircle(30, H - 20, 4, (Color){ 110, 220, 200, 255 });
+        DrawCircle(W - 40, 20, 4, (Color){ 110, 220, 200, 255 });
+        DrawCircle(W - 80, H - 20, 4, (Color){ 110, 220, 200, 255 });
+        DrawRectangle(100, 70, 26, 18, (Color){ 235, 190, 90, 255 });
+        DrawRectangle(150, 40, 18, 18, (Color){ 110, 220, 200, 255 });
+    EndTextureMode();
+
+    signs[SIGN_VENT] = MakeSignCanvas();
+    BeginTextureMode(signs[SIGN_VENT]);
+        ClearBackground((Color){ 20, 22, 28, 255 });
+        DrawRectangleLinesEx((Rectangle){ 10, 10, W - 20, H - 20 }, 3, (Color){ 110, 115, 128, 255 });
+        for (int y = 22; y < H - 14; y += 14) {
+            DrawRectangle(20, y, W - 40, 8, (Color){ 60, 64, 74, 255 });
+        }
+    EndTextureMode();
 }
 
 void Assets_LoadAll(void) {
@@ -37,6 +142,8 @@ void Assets_LoadAll(void) {
     audio.laser = LoadSnd("assets/sounds/spaceinvader/laser.wav");
     audio.explosion = LoadSnd("assets/sounds/spaceinvader/explosion.wav");
     audio.alienAttack = LoadSnd("assets/sounds/spaceinvader/alien_attack.wav");
+
+    GenerateSigns();
 }
 
 void Assets_UnloadAll(void) {
@@ -56,6 +163,8 @@ void Assets_UnloadAll(void) {
     UnloadSound(audio.laser);
     UnloadSound(audio.explosion);
     UnloadSound(audio.alienAttack);
+
+    for (int i = 0; i < SIGN_COUNT; i++) UnloadRenderTexture(signs[i]);
 
     CloseAudioDevice();
 }
