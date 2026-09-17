@@ -71,16 +71,20 @@ assets/         images and sounds used at runtime (copied from the provided asse
 saves/          created at runtime: save.dat, leaderboard.dat, settings.cfg (not committed)
 ```
 
-## Known limitations / what still needs a human pass
+## Credits
 
-- I could compile and smoke-test this on macOS only. The Makefile has the standard
-  conditional flags for Linux and Windows-MSYS64, but I have not built or run it on
-  either platform myself.
-- The maze levels are deliberately simple hand-authored corridors (per the design
-  brief's "no need to make complex mazes"), not open, branching mazes.
-- This has been checked for a clean, warning-free build and reviewed carefully for
-  logic bugs, but a full five-sector human playtest (difficulty, pacing, feel) is
-  still worth doing before you call it final.
+- Design, narrative, and asset pack (images/sounds): the team.
+- Code implemented with AI pair-programming assistance (Claude, Anthropic) working
+  from the team's game design document and asset pack; all gameplay/creative
+  decisions and testing direction came from the team.
+- Built with [Raylib](https://www.raylib.com/) 6.0 (zlib license).
+
+## Known limitations
+
+- Built and tested on macOS only; the Makefile has the standard conditional flags
+  for Linux and Windows-MSYS64 but neither has been build-tested.
+- Levels 2-5 use a randomized maze generator (different layout every run); a full
+  five-sector human playtest end-to-end is still the best final check.
 
 ## Publishing to itch.io
 
