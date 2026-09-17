@@ -1,0 +1,5 @@
+build/
+saves/*
+*.o
+.DS_Store
+release/
