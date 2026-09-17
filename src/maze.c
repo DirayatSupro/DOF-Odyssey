@@ -131,10 +131,18 @@ static void BuildRoomMaze(Maze *m, Color wallColor, Color floorColor) {
         for (int c = 0; c < width; c++)
             m->cells[r][c] = CELL_WALL;
 
-    // Recursive-backtracker maze. Room (0, entryRow) sits right past the
-    // gate; the far corner room is the level exit.
-    const RoomPos entry = { ROOM_GRID / 2, 0 };
-    const RoomPos exit = { ROOM_GRID - 1, ROOM_GRID - 1 };
+    // Recursive-backtracker maze. Room (entryRow, 0) sits right past the
+    // gate; the exit is randomized every time (any room far enough from the
+    // entry to force a real trip through the maze) rather than always being
+    // the same far corner, so the exit isn't always in the same direction.
+    const RoomPos entry = { GetRandomValue(0, ROOM_GRID - 1), 0 };
+    RoomPos exit = { ROOM_GRID - 1, ROOM_GRID - 1 };
+    for (int attempt = 0; attempt < 200; attempt++) {
+        RoomPos candidate = { GetRandomValue(0, ROOM_GRID - 1), GetRandomValue(0, ROOM_GRID - 1) };
+        int dr = candidate.rr - entry.rr; if (dr < 0) dr = -dr;
+        int dc = candidate.rc - entry.rc; if (dc < 0) dc = -dc;
+        if (dr + dc >= ROOM_GRID) { exit = candidate; break; }
+    }
 
     // Foyer: start -> kiosk -> locked gate, all carved due east, aligned
     // with the entry room's row so the gate opens directly into it.
@@ -411,6 +419,37 @@ static Color ApplyFog(Color c, Vector3 worldPos, Vector3 cameraPos) {
     };
 }
 
+static unsigned int CellHash(int r, int c) {
+    unsigned int h = (unsigned int)(r * 928371 + c * 68111 + 12345);
+    h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
+    return h;
+}
+
+// Layers a few extra shapes onto a plain wall cube so it reads as a built
+// panel instead of a flat block: a recessed mid-height seam, a metal
+// conduit pipe near the floor, and (on roughly one cell in four) a small
+// access-panel detail with its own indicator light. Everything is
+// symmetric front/back/left/right (like the ceiling strip) since we don't
+// track which face of the cube is actually exposed to the corridor.
+static void DrawWallDetails(Vector3 p, Color wallColor, int row, int col, Vector3 cameraPos) {
+    Vector3 seamPos = { p.x, WALL_HEIGHT * 0.58f, p.z };
+    DrawCube(seamPos, CELL_SIZE * 0.98f, 0.07f, CELL_SIZE * 0.98f, ApplyFog(ColorBrightness(wallColor, -0.5f), seamPos, cameraPos));
+
+    Vector3 pipePos = { p.x, WALL_HEIGHT * 0.16f, p.z };
+    DrawCube(pipePos, CELL_SIZE * 1.01f, 0.22f, CELL_SIZE * 1.01f, ApplyFog((Color){ 96, 101, 112, 255 }, pipePos, cameraPos));
+    DrawCube(pipePos, CELL_SIZE * 0.5f, 0.24f, CELL_SIZE * 0.5f, ApplyFog((Color){ 118, 123, 134, 255 }, pipePos, cameraPos));
+
+    unsigned int hash = CellHash(row, col);
+    if (hash % 4 == 0) {
+        Vector3 panelPos = { p.x, WALL_HEIGHT * 0.42f, p.z };
+        DrawCube(panelPos, CELL_SIZE * 0.4f, 0.5f, CELL_SIZE * 0.4f, ApplyFog(ColorBrightness(wallColor, -0.55f), panelPos, cameraPos));
+
+        Color indicator = (hash % 8 == 0) ? (Color){ 235, 100, 90, 255 } : (Color){ 110, 220, 200, 255 };
+        float pulse = 0.6f + 0.4f * sinf((float)GetTime() * 3.0f + (float)hash);
+        DrawCube(panelPos, CELL_SIZE * 0.1f, 0.52f, CELL_SIZE * 0.1f, ApplyFog(Fade(indicator, pulse), panelPos, cameraPos));
+    }
+}
+
 void Maze_Draw(const Maze *m, bool kioskSolved, Vector3 cameraPos) {
     DrawStars();
 
@@ -437,6 +476,8 @@ void Maze_Draw(const Maze *m, bool kioskSolved, Vector3 cameraPos) {
 
                 Vector3 stripPos = { p.x, WALL_HEIGHT - 0.14f, p.z };
                 DrawCube(stripPos, CELL_SIZE * 0.94f, 0.1f, CELL_SIZE * 0.94f, ApplyFog(stripColor, stripPos, cameraPos));
+
+                DrawWallDetails(p, m->wallColor, r, c, cameraPos);
             } else if (t == CELL_BLOCK && !kioskSolved) {
                 Vector3 p = Maze_CellToWorld(m, c, r);
                 p.y = WALL_HEIGHT / 2.0f;

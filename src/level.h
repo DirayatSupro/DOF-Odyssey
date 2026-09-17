@@ -18,6 +18,8 @@ typedef struct {
     char playerName[32];
     float totalElapsed;
     float dofBannerTimer; // >0 while the "Degree of Freedom unlocked" banner is showing
+    bool ending;          // true once the level-5 exit is reached: player floats, then the game ends
+    float endingTimer;
 } LevelState;
 
 extern LevelState levelState;

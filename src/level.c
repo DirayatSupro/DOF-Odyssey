@@ -55,6 +55,8 @@ static void EnterLevel(int levelIndex, bool solved) {
     Player_Reset(&levelState.player, startPos, levelState.maze.startYawDeg);
     levelState.kioskSolved = solved;
     levelState.inMinigame = false;
+    levelState.ending = false;
+    levelState.endingTimer = 0.0f;
 }
 
 void Level_StartNew(const char *playerName) {
@@ -108,22 +110,41 @@ void Level_OnScreenDeactivated(void) {
 
 static void AdvanceToNextLevel(void) {
     Audio_Play(audio.door);
-    if (levelState.levelIndex < 5) {
-        EnterLevel(levelState.levelIndex + 1, false);
-        SyncToAppSave();
-        Save_Write();
-    } else {
-        Leaderboard_AddEntry(levelState.playerName, levelState.totalElapsed);
-        Save_Delete();
-        app.screen = SCREEN_START_MENU;
-        Audio_StopAllOneShots();
-        EnableCursor();
-    }
+    EnterLevel(levelState.levelIndex + 1, false);
+    SyncToAppSave();
+    Save_Write();
+}
+
+#define ENDING_FLOAT_DURATION 5.0f
+
+static void StartEndingSequence(void) {
+    levelState.ending = true;
+    levelState.endingTimer = 0.0f;
+    Audio_StopAllOneShots();
+    Audio_Play(audio.door);
+}
+
+static void FinishGame(void) {
+    Leaderboard_AddEntry(levelState.playerName, levelState.totalElapsed);
+    Save_Delete();
+    app.screen = SCREEN_START_MENU;
+    Audio_StopAllOneShots();
+    EnableCursor();
 }
 
 void Level_Update(float dt) {
     levelState.totalElapsed += dt;
     if (levelState.dofBannerTimer > 0.0f) levelState.dofBannerTimer -= dt;
+
+    if (levelState.ending) {
+        levelState.endingTimer += dt;
+        levelState.player.position.y += 1.7f * dt;
+        levelState.player.yawDeg += 14.0f * dt;
+        if (levelState.endingTimer >= ENDING_FLOAT_DURATION) {
+            FinishGame();
+        }
+        return;
+    }
 
     if (levelState.inMinigame) {
         MinigameStatus status = levelState.activeMinigame.Update(dt);
@@ -162,7 +183,11 @@ void Level_Update(float dt) {
     }
 
     if (levelState.kioskSolved && Maze_ReachedExit(&levelState.maze, levelState.player.position, 1.6f)) {
-        AdvanceToNextLevel();
+        if (levelState.levelIndex < 5) {
+            AdvanceToNextLevel();
+        } else {
+            StartEndingSequence();
+        }
     }
 }
 
@@ -206,6 +231,19 @@ static void DrawHud(void) {
     }
 }
 
+static void DrawEndingOverlay(void) {
+    float t = levelState.endingTimer / ENDING_FLOAT_DURATION;
+    if (t > 1.0f) t = 1.0f;
+
+    float alpha = 1.0f;
+    if (t < 0.12f) alpha = t / 0.12f;
+    else if (t > 0.8f) alpha = (1.0f - t) / 0.2f;
+    if (alpha < 0.0f) alpha = 0.0f;
+
+    float y = VIRTUAL_HEIGHT * 0.6f - t * 260.0f;
+    DrawCenteredText("Congrats, you have completed the Game!", VIRTUAL_WIDTH / 2, (int)y, 32, Fade(COL_SUCCESS, alpha));
+}
+
 void Level_Draw(void) {
     if (levelState.inMinigame) {
         DrawSpaceBackdrop(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -220,5 +258,9 @@ void Level_Draw(void) {
     Maze_Draw(&levelState.maze, levelState.kioskSolved, cam.position);
     EndMode3D();
 
-    DrawHud();
+    if (levelState.ending) {
+        DrawEndingOverlay();
+    } else {
+        DrawHud();
+    }
 }
