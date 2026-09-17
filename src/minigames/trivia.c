@@ -1,6 +1,7 @@
 #include "minigame.h"
 #include "level.h"
 #include "theme.h"
+#include "viewport.h"
 #include <string.h>
 #include <ctype.h>
 
@@ -93,8 +94,8 @@ static MinigameStatus TriviaUpdate(float dt) {
 }
 
 static void TriviaDraw(void) {
-    int sw = GetScreenWidth();
-    int sh = GetScreenHeight();
+    int sw = VIRTUAL_WIDTH;
+    int sh = VIRTUAL_HEIGHT;
     Rectangle panel = { sw / 2.0f - 340, sh / 2.0f - 160, 680, 320 };
     DrawRectangleRounded(panel, 0.06f, 8, COL_PANEL);
     DrawRectangleRoundedLinesEx(panel, 0.06f, 8, 2.0f, COL_PANEL_BORDER);

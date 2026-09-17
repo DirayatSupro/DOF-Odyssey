@@ -48,7 +48,15 @@ this repo is still somewhere near the binary.
 | Strafe left / right | A/D or Left/Right (unlocked progressively) |
 | Interact with a console | E |
 | Pause / resume | Esc |
+| Toggle fullscreen | F11 |
 | Minigame-specific actions | shown on screen in each minigame |
+
+The window is freely resizable and F11 toggles borderless fullscreen at your
+monitor's native resolution. Everything is drawn to a fixed 1280x720 virtual
+canvas that then gets scaled and letterboxed to fit whatever size the real
+window ends up at, so every screen keeps its exact layout (and the 3D view
+keeps a correct, undistorted aspect ratio) no matter what size or shape
+monitor you're on.
 
 Each sector's console is locked behind a short "no degrees of freedom yet" foyer.
 Walk up to it, press E, and solve that sector's minigame to unlock the next movement

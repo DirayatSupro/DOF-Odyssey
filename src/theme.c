@@ -1,4 +1,5 @@
 #include "theme.h"
+#include "viewport.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,7 +36,7 @@ void DrawSpaceBackdrop(int screenW, int screenH) {
 }
 
 bool UiButton(Rectangle rect, const char *label, bool accent, bool danger) {
-    Vector2 mouse = GetMousePosition();
+    Vector2 mouse = Viewport_GetMouse();
     bool hovered = CheckCollisionPointRec(mouse, rect);
 
     Color bg = accent ? COL_ACCENT : COL_PANEL;

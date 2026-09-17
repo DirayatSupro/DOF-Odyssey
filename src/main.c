@@ -5,13 +5,13 @@
 #include "ui.h"
 #include "level.h"
 #include "respath.h"
+#include "viewport.h"
 #include <time.h>
 
 int main(void) {
-    const int screenWidth = 1280;
-    const int screenHeight = 720;
-
-    InitWindow(screenWidth, screenHeight, "Degrees of Freedom: Lost on the Odyssey");
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "Degrees of Freedom: Lost on the Odyssey");
+    SetWindowMinSize(640, 360);
     SetTargetFPS(60);
     SetExitKey(KEY_NULL); // ESC is used for the in-game pause menu, not window close
     SetRandomSeed((unsigned int)time(NULL)); // different maze layout / puzzle shuffle every run
@@ -19,12 +19,19 @@ int main(void) {
     App_Init();
     Assets_LoadAll();
 
+    RenderTexture2D canvas = LoadRenderTexture(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    SetTextureFilter(canvas.texture, TEXTURE_FILTER_BILINEAR);
+
     while (app.running && !WindowShouldClose()) {
         float dt = GetFrameTime();
         Audio_UpdateMusic();
 
         bool musicScreen = (app.screen == SCREEN_START_MENU || app.screen == SCREEN_SETTINGS || app.screen == SCREEN_LEADERBOARD);
         Audio_SetMusicPlaying(musicScreen);
+
+        if (IsKeyPressed(KEY_F11)) {
+            ToggleBorderlessWindowed();
+        }
 
         if (IsKeyPressed(KEY_ESCAPE)) {
             if (app.screen == SCREEN_PLAYING) {
@@ -40,7 +47,8 @@ int main(void) {
             Level_Update(dt);
         }
 
-        BeginDrawing();
+        // Draw everything to the fixed-size virtual canvas first...
+        BeginTextureMode(canvas);
 
         switch (app.screen) {
             case SCREEN_START_MENU:
@@ -72,6 +80,15 @@ int main(void) {
                 break;
         }
 
+        EndTextureMode();
+
+        // ...then scale+letterbox that canvas onto the real (resizable,
+        // possibly fullscreen) window, preserving aspect ratio.
+        BeginDrawing();
+        ClearBackground(BLACK);
+        Viewport vp = Viewport_Compute();
+        Rectangle src = { 0, 0, (float)canvas.texture.width, -(float)canvas.texture.height };
+        DrawTexturePro(canvas.texture, src, vp.dest, (Vector2){ 0, 0 }, 0.0f, WHITE);
         EndDrawing();
 
         if (IsKeyPressed(KEY_F12)) {
@@ -79,6 +96,7 @@ int main(void) {
         }
     }
 
+    UnloadRenderTexture(canvas);
     Assets_UnloadAll();
     App_Shutdown();
     CloseWindow();

@@ -1,6 +1,7 @@
 #include "minigame.h"
 #include "assets.h"
 #include "theme.h"
+#include "viewport.h"
 #include <math.h>
 #include <string.h>
 
@@ -78,7 +79,7 @@ static void ResetRound(void) {
 }
 
 static void SpaceInvaderInit(void) {
-    playArea = (Rectangle){ 110, 110, (float)GetScreenWidth() - 220, 480 };
+    playArea = (Rectangle){ 110, 110, (float)VIRTUAL_WIDTH - 220, 480 };
     frontY = playArea.y + playArea.height - 120;
     backY = playArea.y + playArea.height - 40;
     ResetRound();
@@ -232,7 +233,7 @@ static MinigameStatus SpaceInvaderUpdate(float dt) {
 }
 
 static void SpaceInvaderDraw(void) {
-    int sw = GetScreenWidth();
+    int sw = VIRTUAL_WIDTH;
     DrawCenteredText("STAR DEFENDER", sw / 2, 24, 30, COL_TEXT);
     DrawText(TextFormat("Enemies %d", aliveCount), (int)playArea.x, 64, 18, COL_TEXT_DIM);
     DrawText(TextFormat("Score %d", score), (int)(playArea.x + playArea.width - 120), 64, 18, COL_TEXT_DIM);

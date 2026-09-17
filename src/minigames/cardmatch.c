@@ -1,6 +1,7 @@
 #include "minigame.h"
 #include "assets.h"
 #include "theme.h"
+#include "viewport.h"
 #include <math.h>
 #include <string.h>
 
@@ -43,7 +44,7 @@ static void CardMatchInit(void) {
     float cardW = 120, cardH = 150, gap = 12;
     float totalW = CM_COLS * cardW + (CM_COLS - 1) * gap;
     float totalH = CM_ROWS * cardH + (CM_ROWS - 1) * gap;
-    float startX = GetScreenWidth() / 2.0f - totalW / 2.0f;
+    float startX = VIRTUAL_WIDTH / 2.0f - totalW / 2.0f;
     float startY = 130;
     (void)totalH;
 
@@ -75,7 +76,7 @@ static MinigameStatus CardMatchUpdate(float dt) {
     }
 
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && secondIndex == -1) {
-        Vector2 mouse = GetMousePosition();
+        Vector2 mouse = Viewport_GetMouse();
         for (int i = 0; i < CM_COUNT; i++) {
             if (cards[i].matched || cards[i].faceUp) continue;
             if (CheckCollisionPointRec(mouse, cardRects[i])) {
@@ -175,7 +176,7 @@ static void DrawIcon(int icon, Vector2 center, float size) {
 }
 
 static void CardMatchDraw(void) {
-    int sw = GetScreenWidth();
+    int sw = VIRTUAL_WIDTH;
     DrawCenteredText("COSMIC MATCH", sw / 2, 24, 30, COL_TEXT);
     DrawCenteredText(TextFormat("Matches %d/%d", matchesFound, CM_ICONS), sw / 2, 60, 18, COL_TEXT_DIM);
 

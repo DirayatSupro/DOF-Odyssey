@@ -1,18 +1,19 @@
 #include "ui.h"
 #include "assets.h"
 #include "theme.h"
+#include "viewport.h"
 #include "level.h"
 #include <string.h>
 
 static Rectangle FracRect(float l, float t, float r, float b) {
-    int sw = GetScreenWidth();
-    int sh = GetScreenHeight();
+    int sw = VIRTUAL_WIDTH;
+    int sh = VIRTUAL_HEIGHT;
     return (Rectangle){ l * sw, t * sh, (r - l) * sw, (b - t) * sh };
 }
 
 static void DrawFullscreenTexture(Texture2D tex) {
     Rectangle src = { 0, 0, (float)tex.width, (float)tex.height };
-    Rectangle dst = { 0, 0, (float)GetScreenWidth(), (float)GetScreenHeight() };
+    Rectangle dst = { 0, 0, (float)VIRTUAL_WIDTH, (float)VIRTUAL_HEIGHT };
     DrawTexturePro(tex, src, dst, (Vector2){ 0, 0 }, 0.0f, WHITE);
 }
 
@@ -24,7 +25,7 @@ void UI_DrawStartMenu(void) {
     Rectangle leaderb   = FracRect(0.359f, 0.621f, 0.640f, 0.701f);
     Rectangle settings  = FracRect(0.359f, 0.721f, 0.640f, 0.801f);
 
-    Vector2 mouse = GetMousePosition();
+    Vector2 mouse = Viewport_GetMouse();
     bool clicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 
     if (clicked && CheckCollisionPointRec(mouse, newGame)) {
@@ -49,10 +50,10 @@ void UI_DrawStartMenu(void) {
 }
 
 void UI_DrawSettings(AppScreen backTarget) {
-    DrawSpaceBackdrop(GetScreenWidth(), GetScreenHeight());
+    DrawSpaceBackdrop(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
-    int sw = GetScreenWidth();
-    int sh = GetScreenHeight();
+    int sw = VIRTUAL_WIDTH;
+    int sh = VIRTUAL_HEIGHT;
     Rectangle panel = { sw / 2.0f - 260, sh / 2.0f - 180, 520, 360 };
     DrawRectangleRounded(panel, 0.08f, 8, COL_PANEL);
     DrawRectangleRoundedLinesEx(panel, 0.08f, 8, 2.0f, COL_PANEL_BORDER);
@@ -73,10 +74,10 @@ void UI_DrawSettings(AppScreen backTarget) {
 }
 
 void UI_DrawLeaderboard(void) {
-    DrawSpaceBackdrop(GetScreenWidth(), GetScreenHeight());
+    DrawSpaceBackdrop(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
-    int sw = GetScreenWidth();
-    int sh = GetScreenHeight();
+    int sw = VIRTUAL_WIDTH;
+    int sh = VIRTUAL_HEIGHT;
     Rectangle panel = { sw / 2.0f - 260, sh / 2.0f - 260, 520, 520 };
     DrawRectangleRounded(panel, 0.06f, 8, COL_PANEL);
     DrawRectangleRoundedLinesEx(panel, 0.06f, 8, 2.0f, COL_PANEL_BORDER);
@@ -165,10 +166,10 @@ static const ScriptLine scriptLines[] = {
 static float scriptScroll = 0.0f;
 
 void UI_DrawGameScript(void) {
-    DrawSpaceBackdrop(GetScreenWidth(), GetScreenHeight());
+    DrawSpaceBackdrop(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
-    int sw = GetScreenWidth();
-    int sh = GetScreenHeight();
+    int sw = VIRTUAL_WIDTH;
+    int sh = VIRTUAL_HEIGHT;
     Rectangle panel = { sw / 2.0f - 380, 40, 760, (float)sh - 80 };
     DrawRectangleRounded(panel, 0.04f, 8, COL_PANEL);
     DrawRectangleRoundedLinesEx(panel, 0.04f, 8, 2.0f, COL_PANEL_BORDER);
@@ -225,7 +226,7 @@ void UI_DrawPauseMenu(void) {
     Rectangle script  = FracRect(0.365f, 0.625f, 0.635f, 0.703f);
     Rectangle quit    = FracRect(0.365f, 0.709f, 0.635f, 0.788f);
 
-    Vector2 mouse = GetMousePosition();
+    Vector2 mouse = Viewport_GetMouse();
     bool clicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 
     if (clicked && CheckCollisionPointRec(mouse, resume)) {
@@ -243,10 +244,10 @@ void UI_DrawPauseMenu(void) {
 }
 
 void UI_DrawPauseRestartConfirm(void) {
-    DrawSpaceBackdrop(GetScreenWidth(), GetScreenHeight());
+    DrawSpaceBackdrop(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
-    int sw = GetScreenWidth();
-    int sh = GetScreenHeight();
+    int sw = VIRTUAL_WIDTH;
+    int sh = VIRTUAL_HEIGHT;
     Rectangle panel = { sw / 2.0f - 260, sh / 2.0f - 170, 520, 340 };
     DrawRectangleRounded(panel, 0.08f, 8, COL_PANEL);
     DrawRectangleRoundedLinesEx(panel, 0.08f, 8, 2.0f, COL_PANEL_BORDER);

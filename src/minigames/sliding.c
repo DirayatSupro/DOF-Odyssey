@@ -1,6 +1,7 @@
 #include "minigame.h"
 #include "assets.h"
 #include "theme.h"
+#include "viewport.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -34,7 +35,7 @@ static void SlidingInit(void) {
         blankIndex = pick;
     }
 
-    int sw = GetScreenWidth();
+    int sw = VIRTUAL_WIDTH;
     float bw = 400.0f;
     float bh = bw * ((float)textures.slidingtile.height / (float)textures.slidingtile.width);
     boardRect = (Rectangle){ sw / 2.0f - bw / 2.0f, 96, bw, bh };
@@ -66,7 +67,7 @@ static void TrySlide(int index) {
 static MinigameStatus SlidingUpdate(float dt) {
     (void)dt;
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        Vector2 mouse = GetMousePosition();
+        Vector2 mouse = Viewport_GetMouse();
         if (CheckCollisionPointRec(mouse, boardRect)) {
             int c = (int)((mouse.x - boardRect.x) / tileW);
             int r = (int)((mouse.y - boardRect.y) / tileH);
@@ -89,7 +90,7 @@ static MinigameStatus SlidingUpdate(float dt) {
 }
 
 static void SlidingDraw(void) {
-    int sw = GetScreenWidth();
+    int sw = VIRTUAL_WIDTH;
     DrawCenteredText("STARSHIP SCHEMATIC", sw / 2, 24, 30, COL_TEXT);
     DrawCenteredText("Slide the tiles into order: 1-8, blank in the bottom-right", sw / 2, 60, 16, COL_TEXT_DIM);
 

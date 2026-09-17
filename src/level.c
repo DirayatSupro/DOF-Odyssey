@@ -2,6 +2,7 @@
 #include "app.h"
 #include "assets.h"
 #include "theme.h"
+#include "viewport.h"
 #include <string.h>
 
 LevelState levelState;
@@ -156,7 +157,7 @@ void Level_Update(float dt) {
 static void DrawHud(void) {
     int minutes = (int)levelState.totalElapsed / 60;
     int seconds = (int)levelState.totalElapsed % 60;
-    DrawText(TextFormat("%02d:%02d", minutes, seconds), GetScreenWidth() - 110, 16, 24, RAYWHITE);
+    DrawText(TextFormat("%02d:%02d", minutes, seconds), VIRTUAL_WIDTH - 110, 16, 24, RAYWHITE);
     DrawText(TextFormat("Sector %d/5 - %s", levelState.levelIndex, Level_GetName(levelState.levelIndex)), 16, 16, 20, RAYWHITE);
 
     const char *dofLabel[5] = { "FWD", "BACK", "LEFT", "RIGHT", "SPACE" };
@@ -168,15 +169,15 @@ static void DrawHud(void) {
     }
 
     if (!levelState.kioskSolved && Maze_NearKiosk(&levelState.maze, levelState.player.position, 2.4f)) {
-        DrawCenteredText("Press [E] to interact", GetScreenWidth() / 2, GetScreenHeight() - 90, 24, RAYWHITE);
+        DrawCenteredText("Press [E] to interact", VIRTUAL_WIDTH / 2, VIRTUAL_HEIGHT - 90, 24, RAYWHITE);
     }
 }
 
 void Level_Draw(void) {
     if (levelState.inMinigame) {
-        DrawSpaceBackdrop(GetScreenWidth(), GetScreenHeight());
+        DrawSpaceBackdrop(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
         levelState.activeMinigame.Draw();
-        DrawText("[ESC] Pause", 16, GetScreenHeight() - 30, 18, (Color){ 150, 155, 180, 255 });
+        DrawText("[ESC] Pause", 16, VIRTUAL_HEIGHT - 30, 18, (Color){ 150, 155, 180, 255 });
         return;
     }
 

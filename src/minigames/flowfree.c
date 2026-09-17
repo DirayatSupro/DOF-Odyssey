@@ -1,6 +1,7 @@
 #include "minigame.h"
 #include "assets.h"
 #include "theme.h"
+#include "viewport.h"
 #include <string.h>
 #include <math.h>
 
@@ -149,7 +150,7 @@ static void FlowFreeInit(void) {
     lastTouchedColor = -1;
     filledCount = 0;
 
-    int sw = GetScreenWidth();
+    int sw = VIRTUAL_WIDTH;
     float size = 460.0f;
     gridRect = (Rectangle){ sw / 2.0f - size / 2.0f, 90, size, size };
     cellSize = size / FF_N;
@@ -189,7 +190,7 @@ static void PushCell(int colorIdx, int r, int c) {
 
 static MinigameStatus FlowFreeUpdate(float dt) {
     (void)dt;
-    Vector2 mouse = GetMousePosition();
+    Vector2 mouse = Viewport_GetMouse();
     int r, c;
     bool onGrid = CellToScreenValid(mouse, &r, &c);
 
@@ -263,7 +264,7 @@ static void DrawPlanetDot(Vector2 center, float radius, Color color, const char 
 }
 
 static void FlowFreeDraw(void) {
-    int sw = GetScreenWidth();
+    int sw = VIRTUAL_WIDTH;
 
     DrawCenteredText("ORBIT FLOW", sw / 2, 28, 30, COL_TEXT);
     DrawCenteredText("Connect each planet pair and fill every cell", sw / 2, 64, 16, COL_TEXT_DIM);
